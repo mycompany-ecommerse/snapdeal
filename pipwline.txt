@@ -1,0 +1,50 @@
+06af38edf8301ce5b1dca227a2a12e8b0c9b2b65
+http://13.59.239.175:8081/repository/pipeline-release/
+http://13.59.239.175:8081/repository/pipeline-snapshot/
+
+node{
+
+
+ def mavenHome=tool name: "mavenv3.6.2", type: "maven"
+
+stage('CheckouttheCode') {
+   git branch: 'development', credentialsId: '06af38edf8301ce5b1dca227a2a12e8b0c9b2b65', url: 'https://github.com/murali1506/maven-web-application.git'  
+ }
+
+
+stage('Build'){
+
+sh "${mavenHome}/bin/mvn clean package"
+}
+
+stage('SonarQubeReport'){
+
+sh "${mavenHome}/bin/mvn sonar:sonar"
+}
+stage('UploadArtiFactoryintoNexus'){
+
+sh "${mavenHome}/bin/mvn deploy"
+}
+
+stage('DeployArtifactintoTomcat')
+{
+sshagent(['364b5bf0-dd03-4421-8fa7-2c3e6d47ef83']) {
+    sh "scp -o StrictHostKeyChecking=no target/maven-web-application.war ec2-user@18.218.15.62:/opt/apache-tomcat-9.0.22/webapps/maven-web-application.war"
+}
+     
+}
+stage('EmailNotification'){
+    mail to: 'murali.86886@gmail.com',
+         bcc: 'murali.86886@gmail.com', 
+         cc: 'murali.86886@gmail.com', 
+         from: 'murali.86886@gmail.com', 
+         replyTo: 'murali.86886@gmail.com', 
+         subject: 'Build Notification'
+         body: '''Build Done, Please check the build log for more details..
+         
+                  Regards,
+                  Mithun Technologies,
+                  9980923226'''
+ }
+
+}
